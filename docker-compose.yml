@@ -1,0 +1,47 @@
+# docker-compose.yml
+services:
+  airflow-webserver:
+    image: apache/airflow:2.7.0
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__CORE__SQL_ALCHEMY_CONN=sqlite:////opt/airflow/data/airflow.db
+      - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=true
+      - AIRFLOW__CORE__LOAD_EXAMPLES=false
+      - AIRFLOW__API__AUTH_BACKENDS=airflow.api.auth.backend.basic_auth
+      - AIRFLOW__CORE__DAGS_FOLDER=/opt/airflow/dags
+      - AIRFLOW__CORE__LOAD_DEFAULT_CONNECTIONS=false
+      # PostgreSQL environment variables
+      - POSTGRES_USER=avnadmin
+      - POSTGRES_PASSWORD=AVNS_G1ajzCj_WUpXrLzc-3t
+      - POSTGRES_DB=defaultdb
+      - POSTGRES_HOST=pg-c63647-lagatkjosiah-692c.c.aivencloud.com
+      - POSTGRES_PORT=24862
+      - POSTGRES_SSL_MODE=require
+      # API Key (replace with your actual key)
+      - GAS_API_KEY=your-api-key-here
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
+      - ./plugins:/opt/airflow/plugins
+      - ./data:/opt/airflow/data
+    ports:
+      - "8080:8080"
+    command: >
+      bash -c "
+        if [ ! -f /opt/airflow/data/airflow.db ]; then
+          echo 'Initializing Airflow database...' &&
+          airflow db init &&
+          airflow users create --username admin --password admin --firstname Admin --lastname User --role Admin --email admin@example.com
+        fi &&
+        echo 'Starting Airflow webserver...' &&
+        airflow webserver
+      "
+    restart: unless-stopped
+    mem_limit: 2g
+    cpus: 2.0
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
